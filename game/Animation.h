@@ -3,7 +3,7 @@
 class Animation {
 public:
     Animation(sf::Texture* Texture, sf::Vector2u sprites, float switchTime);
-    bool Update(float dt);
+    bool Update(float *dt);
 public:
     sf::Sprite Picture;
 private:

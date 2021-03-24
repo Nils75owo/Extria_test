@@ -9,6 +9,7 @@
 #include <random>
 #include "Animation.h"
 #include "Ship.h"
+#include "E_Ship.h"
 
 int main()
 {
@@ -25,27 +26,29 @@ int main()
     //settings
     int shotcooldown = 10;
     int autoshottime = 700;
-    int enemyspawntime = 500;
+    int e_Ship_spawntime = 1000;
     int dedexplosions = 10;
+    int e_Ship_Shotpawn = 700;
     float shipacceleration = 1.f;
     float shipdrag = 0.2f;
 
     //variables
-    bool previousKeyState = true;
     sf::Clock enemytime;
     sf::Clock randomexplosion;
     sf::Clock pressedtime;
-    int oldenemycount;
+    sf::Clock e_ship;
+    bool previousKeyState = true;
     bool lost = false;
+    bool first = true;
+    int oldenemycount;
     int IexplosionX = 0;
     int IexplosionY = 0;
     int random;
-    bool first = true;
     int i = 0;
     int score = 0;
+    float f60 = 0.016;
 
     //create
-
     //background
     sf::Texture backgroundTexture;
     if (!backgroundTexture.loadFromFile("Textures/background.png"))
@@ -61,6 +64,14 @@ int main()
     std::vector<sf::Sprite> shots;
     int shottimer = 0;
 
+    //e_Ship shot
+    sf::Texture e_Ship_shotTexture;
+    sf::Sprite e_Ship_shot;
+    if (!e_Ship_shotTexture.loadFromFile("Textures/e_Ship_shot.png"))
+        std::cout << "Could not load e_Ship_shotTexture.png" << std::endl;
+    e_Ship_shot.setTexture(e_Ship_shotTexture);
+    std::vector<sf::Sprite> e_Ship_shots;
+
     //ship
     sf::Texture shipTexture;
     //sf::Sprite ship;
@@ -71,21 +82,22 @@ int main()
     Ship ship(&shipTexture, shipacceleration, shipdrag);
     ship.Picture.setPosition(1.f, 1.f);
 
-    //enemy
-    sf::Texture enemyTexture;
-    sf::Sprite enemy;
-    if (!enemyTexture.loadFromFile("Textures/enemy.png"))
-        std::cout << "Could not load enemy.png" << std::endl;
-    enemy.setTexture(enemyTexture);
-    std::vector<sf::Sprite> enemies;
+    //e_Ship
+    sf::Texture e_ShipTexture;
+    sf::Sprite e_Ship_Sprite;
+    if (!e_ShipTexture.loadFromFile("Textures/e_Ship.png"))
+        std::cout << "Could not load e_Ship.png" << std::endl;
+    e_Ship_Sprite.setTexture(e_ShipTexture);
+    E_Ship e_Ship(&e_ShipTexture);
+    std::vector<E_Ship> e_Ships;
 
     //explosion
     sf::Texture explosionTexture;
     if (!explosionTexture.loadFromFile("Textures/explosion.png"))
         std::cout << "Could not load explosion.png" << std::endl;
     std::vector<Animation> explosions;
-    Animation explosion(&explosionTexture, sf::Vector2u(8, 6), 0.016f);
-    explosion.Update(0.016f);
+    Animation explosion(&explosionTexture, sf::Vector2u(8, 6), f60);
+    explosion.Update(&f60);
 
     //shotSound
     sf::SoundBuffer SoundBShot;
@@ -162,9 +174,9 @@ int main()
                 }
             }
 
-            if (enemytime.getElapsedTime().asMilliseconds() > enemyspawntime) { //spawn enemies
-                enemy.setPosition(window.getSize().x, (rand() % int(window.getSize().y - 40)));
-                enemies.push_back(enemy);
+            if (enemytime.getElapsedTime().asMilliseconds() > e_Ship_spawntime) { //spawn enemies
+                e_Ship.Picture.setPosition(window.getSize().x, (rand() % int(window.getSize().y - 40)));
+                e_Ships.push_back(e_Ship);
                 enemytime.restart();
             }
 
@@ -179,31 +191,42 @@ int main()
                 shots[i].move(15.f * dtf, 0.f);
             }
 
-            for (size_t i = 0; i < enemies.size(); i++) { //move enemies
-                enemies[i].move(-5.f * dtf, 0.f);
+            for (size_t i = 0; i < e_Ship_shots.size(); i++) { //move e_Ship shots
+                e_Ship_shots[i].move(15.f * dtf, 0.f);
             }
 
-            for (size_t i = 0; i < enemies.size(); i++) {
-                oldenemycount = enemies.size();
+            for (size_t i = 0; i < e_Ships.size(); i++) { //move e_Ships
+                e_Ships[i].Picture.move(-5.f * dtf, 0.f);
+            }
+            for (size_t i = 0; i < e_Ships.size(); i++) { //spawn e_Ship shots
+                if (e_Ships[i].Update(&dt, &e_Ship_Shotpawn)) {
+                    e_Ship_shot.setPosition(e_Ships[i].Picture.getPosition().x, e_Ships[i].Picture.getPosition().y + 32);
+                    e_Ship_shots.push_back(e_Ship_shot);
+                    SoundShot.play();
+                }
+            }
+
+            for (size_t i = 0; i < e_Ships.size(); i++) {
+                oldenemycount = e_Ships.size();
                 for (size_t k = 0; k < shots.size(); k++) {
-                    if (shots[k].getGlobalBounds().intersects(enemies[i].getGlobalBounds())) {
-                        explosion.Picture.setPosition(enemies[i].getPosition().x, enemies[i].getPosition().y);
+                    if (shots[k].getGlobalBounds().intersects(e_Ships[i].Picture.getGlobalBounds())) {
+                        explosion.Picture.setPosition(e_Ships[i].Picture.getPosition().x, e_Ships[i].Picture.getPosition().y);
                         explosions.push_back(explosion);
                         shots.erase(shots.begin() + k);
                         //std::cout << "shot deleted\n";
-                        enemies.erase(enemies.begin() + i);
+                        e_Ships.erase(e_Ships.begin() + i);
                         //std::cout << "enemy deleted\n";
                         SoundExplosion.play();
                         score++;
                         break;
                     }
                 }
-                if (oldenemycount == enemies.size()) {
-                    if (ship.Picture.getGlobalBounds().intersects(enemies[i].getGlobalBounds())) {
-                        explosion.Picture.setPosition(enemies[i].getPosition().x, enemies[i].getPosition().y);
+                if (oldenemycount == e_Ships.size()) {
+                    if (ship.Picture.getGlobalBounds().intersects(e_Ships[i].Picture.getGlobalBounds())) {
+                        explosion.Picture.setPosition(e_Ships[i].Picture.getPosition().x, e_Ships[i].Picture.getPosition().y);
                         explosions.push_back(explosion);
 
-                        enemies.erase(enemies.begin() + i);
+                        e_Ships.erase(e_Ships.begin() + i);
                         //std::cout << "enemy deleted\n";
                         SoundExplosion.play();
                         for (int i = 1; i < 15; i++) {
@@ -218,11 +241,15 @@ int main()
         }
 
         ship.Update(&window, dtf);
+
+        for (size_t i = 0; i < e_Ships.size(); i++) {
+            e_Ships[i].Update(&dt, &e_Ship_Shotpawn);
+        }
         //std::cout << "X: " << ship.Picture.getPosition().x << std::endl;
         //std::cout << "Y: " << ship.Picture.getPosition().y << std::endl;
 
         for (size_t i = 0; i < explosions.size(); i++) { //update explosions
-            if (explosions[i].Update(dt)) {
+            if (explosions[i].Update(&dt)) {
             //std::cout << i << std::endl;
             //std::cout << "X: " << explosions[i].X << std::endl;
             //std::cout << "Y: " << explosions[i].Y << std::endl;
@@ -252,7 +279,7 @@ int main()
             }
             else {
                 explosions.clear();
-                enemies.clear();
+                e_Ships.clear();
                 shots.clear();
                 ship.Picture.setPosition(1.f, 1.f);
                 lost = false;
@@ -274,11 +301,27 @@ int main()
             }
         }
 
-        for (size_t i = 0; i < enemies.size(); i++) { //draw enemy
-            if (enemies[i].getPosition().x <= window.getSize().x + 50 && enemies[i].getPosition().y <= window.getSize().y && enemies[i].getPosition().x > -50.f && enemies[i].getPosition().y > 0.f)
-                window.draw(enemies[i]);
+        for (size_t i = 0; i < e_Ship_shots.size(); i++) { //draw e_Ship shots
+            if (e_Ship_shots[i].getPosition().x <= window.getSize().x + 50 && e_Ship_shots[i].getPosition().y <= window.getSize().y && e_Ship_shots[i].getPosition().x > -50.f && e_Ship_shots[i].getPosition().y > 0.f)
+                window.draw(e_Ship_shots[i]);
             else {
-                enemies.erase(enemies.begin() + i); //erase if out of screen
+                e_Ship_shots.erase(e_Ship_shots.begin() + i); //erase if out of screen
+            }
+        }
+
+        for (size_t i = 0; i < e_Ships.size(); i++) { //draw e_Ship
+            if (e_Ships[i].Picture.getPosition().x <= window.getSize().x + 50 && e_Ships[i].Picture.getPosition().y <= window.getSize().y && e_Ships[i].Picture.getPosition().x > -50.f && e_Ships[i].Picture.getPosition().y > 0.f)
+                window.draw(e_Ships[i].Picture);
+            else {
+                e_Ships.erase(e_Ships.begin() + i); //erase if out of screen
+            }
+        }
+
+        for (size_t i = 0; i < shots.size(); i++) { //draw e_Ship shots
+            if (shots[i].getPosition().x <= window.getSize().x && shots[i].getPosition().y <= window.getSize().y && shots[i].getPosition().x > 0.f && shots[i].getPosition().y > 0.f)
+                window.draw(shots[i]);
+            else {
+                shots.erase(shots.begin() + i); //erase if out of screen
             }
         }
 
@@ -296,7 +339,7 @@ int main()
         //debug
 
         //std::cout << shots.size() << "\n"; //shots on screen
-        //std::cout << enemies.size() << "\n"; //enemies on screen
+        //std::cout << e_Ships.size() << "\n"; //enemies on screen
         //std::cout << pressedtime << endl; //pressed timer
 
         //for (size_t i = 0; i < explosions.size(); i++) { //display explosion data

@@ -14,8 +14,8 @@ Animation::Animation(sf::Texture* Texture, sf::Vector2u sprites, float switchTim
     this->totalTime = 0.f;
 }
 
-bool Animation::Update(float dt) {
-    this->totalTime += dt;
+bool Animation::Update(float *dt) {
+    this->totalTime += *dt;
     frames = this->totalTime / switchTime;
     this->totalframes += frames;
 
