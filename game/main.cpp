@@ -28,7 +28,7 @@ int main()
     int autoshottime = 700;
     int e_Ship_spawntime = 1000;
     int dedexplosions = 10;
-    int e_Ship_Shotpawn = 700;
+    float e_Ship_Shotpawn = 1.0f;
     float shipacceleration = 1.f;
     float shipdrag = 0.2f;
 
@@ -46,7 +46,7 @@ int main()
     int random;
     int i = 0;
     int score = 0;
-    float f60 = 0.016;
+    float f60 = 0.016f;
 
     //create
     //background
@@ -115,6 +115,9 @@ int main()
     SoundExplosion.setBuffer(SoundBExplosion);
     SoundExplosion.setVolume(25.f);
 
+    e_Ship.Picture.setPosition(float(window.getSize().x), float(rand() % (window.getSize().y - 40)));
+    e_Ships.push_back(e_Ship);
+
     while (window.isOpen())
     {
 
@@ -174,11 +177,11 @@ int main()
                 }
             }
 
-            if (enemytime.getElapsedTime().asMilliseconds() > e_Ship_spawntime) { //spawn enemies
-                e_Ship.Picture.setPosition(window.getSize().x, (rand() % int(window.getSize().y - 40)));
-                e_Ships.push_back(e_Ship);
-                enemytime.restart();
-            }
+            //if (enemytime.getElapsedTime().asMilliseconds() > e_Ship_spawntime) { //spawn enemies
+            //    e_Ship.Picture.setPosition(float(window.getSize().x), float(rand() % (window.getSize().y - 40)));
+            //    e_Ships.push_back(e_Ship);
+            //    enemytime.restart();
+            //}
 
             previousKeyState = sf::Keyboard::isKeyPressed(sf::Keyboard::Space);
             if (!previousKeyState) //reset pressedtime
@@ -192,18 +195,22 @@ int main()
             }
 
             for (size_t i = 0; i < e_Ship_shots.size(); i++) { //move e_Ship shots
-                e_Ship_shots[i].move(15.f * dtf, 0.f);
+                e_Ship_shots[i].move(-15.f * dtf, 0.f);
             }
 
-            for (size_t i = 0; i < e_Ships.size(); i++) { //move e_Ships
-                e_Ships[i].Picture.move(-5.f * dtf, 0.f);
-            }
+            //for (size_t i = 0; i < e_Ships.size(); i++) { //move e_Ships
+            //    e_Ships[i].Picture.move(-5.f * dtf, 0.f);
+            //}
+
             for (size_t i = 0; i < e_Ships.size(); i++) { //spawn e_Ship shots
-                if (e_Ships[i].Update(&dt, &e_Ship_Shotpawn)) {
-                    e_Ship_shot.setPosition(e_Ships[i].Picture.getPosition().x, e_Ships[i].Picture.getPosition().y + 32);
-                    e_Ship_shots.push_back(e_Ship_shot);
-                    SoundShot.play();
-                }
+                if (e_Ships[0].Update(dt, e_Ship_Shotpawn))
+                    std::cout << "true\n";
+                //if (e_Ships[i].Update(dt, e_Ship_Shotpawn)) {
+                //    std::cout << "kek\n";
+                //    e_Ship_shot.setPosition(e_Ships[i].Picture.getPosition().x, e_Ships[i].Picture.getPosition().y + 32);
+                //    e_Ship_shots.push_back(e_Ship_shot);
+                //    SoundShot.play();
+                //}
             }
 
             for (size_t i = 0; i < e_Ships.size(); i++) {
@@ -243,7 +250,7 @@ int main()
         ship.Update(&window, dtf);
 
         for (size_t i = 0; i < e_Ships.size(); i++) {
-            e_Ships[i].Update(&dt, &e_Ship_Shotpawn);
+            e_Ships[i].Update(dt, e_Ship_Shotpawn);
         }
         //std::cout << "X: " << ship.Picture.getPosition().x << std::endl;
         //std::cout << "Y: " << ship.Picture.getPosition().y << std::endl;
@@ -339,6 +346,7 @@ int main()
         //debug
 
         //std::cout << shots.size() << "\n"; //shots on screen
+        std::cout << e_Ship_shots.size() << "\n"; //e_Ship shots on screen
         //std::cout << e_Ships.size() << "\n"; //enemies on screen
         //std::cout << pressedtime << endl; //pressed timer
 
